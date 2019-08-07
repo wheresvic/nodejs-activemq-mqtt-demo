@@ -1,19 +1,31 @@
 const mqtt = require("mqtt");
-const client = mqtt.connect("mqtt://localhost:1883", { clientId: "nodejs-activemq-mqtt-demo", clean: false });
 
-client.on("connect", () => {
-  client.subscribe({ "home/test": { qos: 2 } }, function(err, granted) {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    console.log(granted);
+const configuration = require("./config");
+
+function main() {
+  configuration.init().then(function(ic) {
+    const client = mqtt.connect("mqtt://localhost:1883", {
+      clientId: "nodejs-activemq-mqtt-demo",
+      clean: false,
+      username: ic.mqttUsername,
+      password: ic.mqttPassword
+    });
+
+    client.on("connect", () => {
+      client.subscribe({ "home/test": { qos: 2 } }, function(err, granted) {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        console.log(granted);
+      });
+    });
+
+    client.on("message", (topic, message) => {
+      console.log("received message %s %s", topic, message);
+    });
   });
-});
-
-client.on("message", (topic, message) => {
-  console.log("received message %s %s", topic, message);
-});
+}
 
 /**
  * Handle the different ways the application can shutdown
@@ -63,3 +75,5 @@ process.on(
     exit: true
   })
 );
+
+Promise.resolve(main());
